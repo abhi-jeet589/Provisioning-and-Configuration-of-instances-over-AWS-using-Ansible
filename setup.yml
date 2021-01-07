@@ -1,0 +1,73 @@
+- name: "Provisioning on AWS"
+  hosts: localhost
+  vars_files:
+  - secret.yml
+  tasks:
+  - name: "Pre-requisite for provisioning check"
+    pip:
+       name: "{{  item  }}"
+       state: present
+    loop:
+       - "boto"
+       - "boto3"
+       - "botocore"
+
+  - name: "Provision Reverse Proxy on AWS"
+    ec2:
+      assign_public_ip: yes
+      aws_access_key: "{{  access_key  }}"
+      aws_secret_key: "{{  secret_key  }}"
+      count: 1
+      image: "ami-04b1ddd35fd71475a"
+      instance_tags:
+          env: "frontend"
+          name: "frontend_ansible"
+      instance_type: "t2.micro"
+      region: "ap-south-1"
+      key_name: "oskey"
+      group_id: "sg-0f60d1817099ad5ee"
+      vpc_subnet_id: "subnet-66e1db0e"
+      wait: yes
+      state: present
+
+  - name: "Provision Webserver on AWS"
+    ec2:
+      assign_public_ip: yes
+      aws_access_key: "{{  access_key  }}"
+      aws_secret_key: "{{  secret_key  }}"
+      count: "{{  count  }}"
+      image: "ami-04b1ddd35fd71475a"
+      instance_tags:
+          env: "backend"
+          name: "webserver_ansible"
+      instance_type: "t2.micro"
+      region: "ap-south-1"
+      key_name: "oskey"
+      group_id: "sg-0f60d1817099ad5ee"
+      vpc_subnet_id: "subnet-66e1db0e"
+      wait: yes
+      state: present
+
+  - name: "Checking pre-requisites for dynamic inventory"
+    shell: "ls ec2.py"
+    register: pre_req_check_1
+    ignore_errors: yes
+
+  - name: "Downloading pre-requisites for dynamic inventory"
+    shell: "wget https://raw.githubusercontent.com/ansible/ansible/stable-2.9/contrib/inventory/ec2.py"
+    when: pre_req_check_1.rc != 0 
+ 
+  - name: "Checking pre-requisites for dynamic inventory"
+    shell: "ls ec2.ini"
+    register: pre_req_check_2
+    ignore_errors: yes
+
+  - name: "Downloading pre-requisites for dynamic inventory"
+    shell: "wget https://raw.githubusercontent.com/ansible/ansible/stable-2.9/contrib/inventory/ec2.ini"
+    when: pre_req_check_2.rc != 0 
+
+  - name: "Configuring pre-requisites for dynamic inventory"
+    shell: "chmod +x ec2.py ec2.ini"
+
+
+ 

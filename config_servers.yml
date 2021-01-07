@@ -1,0 +1,50 @@
+- name: "Configure Frontend Servers"
+  hosts: frontend
+  vars_files:
+  - "frontend_vars.yml"
+  - "backend_vars.yml"
+  tasks:
+  - name: "Install Haproxy"
+    package:
+       name: "haproxy"
+       state: present
+
+  - name: "Configure Haproxy"
+    template:
+       dest: "/etc/haproxy/haproxy.cfg"
+       src: "haproxy_config.cfg.j2"
+    notify: "restart haproxy"
+
+  - name: "Start Haproxy service"
+    service:
+       name: "haproxy"
+       state: started
+
+  handlers:
+  - name: "restart haproxy"
+    service:
+      name: "haproxy"
+      state: restarted
+
+- name: "Configure Backend Servers"
+  hosts: backend
+  vars_files:
+  - "backend_vars.yml"
+  tasks:
+  - name: "Install Apache Webserver"
+    package:
+      name: "{{  item  }}"
+      state: present
+    loop:
+    - "httpd"
+    - "php"
+
+  - name: "Copy webpages to document root"
+    copy:
+      dest: "{{  document_root  }}/index.php"
+      src: "webpage.php"
+
+  - name: "Start Apache service"
+    service:
+       name: "httpd"
+       state: started
